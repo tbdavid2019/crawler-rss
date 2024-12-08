@@ -42,35 +42,79 @@ def cleanup_old_files():
             if os.path.getmtime(fpath) < one_hour_ago:
                 os.remove(fpath)
 
-def scrape_articles(article_urls):
-    """給定文章 URL 清單，抓取文章內容"""
-    logs = []
+def scrape_articles(article_urls, logs, max_retries=3, timeout=60):
     articles = []
     for index, full_url in enumerate(article_urls, 1):
-        logs.append(f"Processing article {index}/{len(article_urls)}: {full_url}")
+        logs.append(f"[{datetime.now()}] Processing article {index}/{len(article_urls)}: {full_url}")
+        success = False
+        for attempt in range(1, max_retries+1):
+            try:
+                logs.append(f"[{datetime.now()}] Attempt {attempt} - GET {full_url}")
+                article_response = requests.get(full_url, headers=HEADERS, timeout=timeout)
+                if article_response.status_code != 200:
+                    logs.append(f"[{datetime.now()}] Failed to fetch {full_url}. HTTP Status Code: {article_response.status_code}")
+                else:
+                    logs.append(f"[{datetime.now()}] Successfully fetched {full_url}, parsing content...")
+                    article_soup = BeautifulSoup(article_response.text, "html.parser")
+                    paragraphs = article_soup.select("p")
+                    content = "\n".join([p.get_text(strip=True) for p in paragraphs])
+                    if len(content.strip()) < 50:
+                        logs.append(f"[{datetime.now()}] Content too short for article: {full_url}")
+                    else:
+                        articles.append({"URL": full_url, "Content": content})
+                        logs.append(f"[{datetime.now()}] Successfully parsed article: {full_url}")
+                        success = True
+                        break
+            except Exception as e:
+                logs.append(f"[{datetime.now()}] Error processing {full_url}: {e}")
+
+            if not success:
+                wait_time = random.uniform(2, 5)
+                logs.append(f"[{datetime.now()}] Waiting {wait_time:.2f}s before retry...")
+                time.sleep(wait_time)
+
+        if not success:
+            logs.append(f"[{datetime.now()}] Giving up on article {full_url} after {max_retries} attempts.")
+
+        delay = random.uniform(1, 2)
+        logs.append(f"[{datetime.now()}] Waiting {delay:.2f} seconds before next article...")
+        time.sleep(delay)
+
+    return articles, logs
+
+def scrape_rss_feed(rss_url, logs, max_retries=3, timeout=60):
+    logs.append(f"[{datetime.now()}] Starting to fetch RSS: {rss_url}")
+    article_urls = []
+    success = False
+    for attempt in range(1, max_retries+1):
         try:
-            article_response = requests.get(full_url, headers=HEADERS, timeout=30)
-            if article_response.status_code != 200:
-                logs.append(f"Failed to fetch {full_url}. HTTP Status Code: {article_response.status_code}")
-                continue
-            
-            article_soup = BeautifulSoup(article_response.text, "html.parser")
-            paragraphs = article_soup.select("p")
-            content = "\n".join([p.get_text(strip=True) for p in paragraphs])
-            if len(content.strip()) < 50:
-                logs.append(f"Content too short for article: {full_url}")
-                continue
-            articles.append({"URL": full_url, "Content": content})
-            logs.append(f"Successfully scraped article: {full_url}")
-
-            delay = random.uniform(0.5, 1.5)
-            time.sleep(delay)
+            logs.append(f"[{datetime.now()}] Attempt {attempt} - GET {rss_url}")
+            resp = requests.get(rss_url, headers=HEADERS, timeout=timeout)
+            if resp.status_code != 200:
+                logs.append(f"[{datetime.now()}] Failed to fetch RSS {rss_url}. HTTP Status: {resp.status_code}")
+            else:
+                logs.append(f"[{datetime.now()}] Successfully fetched RSS {rss_url}, parsing XML...")
+                soup = BeautifulSoup(resp.text, "xml")
+                items = soup.find_all("item")
+                for item in items:
+                    link_tag = item.find("link")
+                    if link_tag and link_tag.text.strip():
+                        article_urls.append(link_tag.text.strip())
+                logs.append(f"[{datetime.now()}] Found {len(article_urls)} articles from {rss_url}")
+                success = True
+                break
         except Exception as e:
-            logs.append(f"Error processing {full_url}: {e}")
+            logs.append(f"[{datetime.now()}] Error fetching RSS: {rss_url}, {e}")
 
-    return articles, "\n".join(logs)
+        if not success:
+            wait_time = random.uniform(3, 6)
+            logs.append(f"[{datetime.now()}] Waiting {wait_time:.2f}s before retry...")
+            time.sleep(wait_time)
 
-def scrape_rss_feed(rss_url):
+    if not success:
+        logs.append(f"[{datetime.now()}] Giving up on RSS {rss_url} after {max_retries} attempts.")
+
+    return article_urls, logs
     """給定RSS URL，取得所有新聞連結"""
     article_urls = []
     try:
