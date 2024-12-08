@@ -22,7 +22,10 @@ DEFAULT_SOURCES = {
 }
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0"
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.5",
+    "Connection": "keep-alive"
 }
 
 OUTPUT_DIR = "./outputs"
@@ -71,7 +74,7 @@ def scrape_rss_feed(rss_url):
     """給定RSS URL，取得所有新聞連結"""
     article_urls = []
     try:
-        resp = requests.get(rss_url, headers=HEADERS, timeout=30)
+        resp = requests.get(rss_url, headers=HEADERS, timeout=60)
         if resp.status_code != 200:
             return article_urls, f"Failed to fetch RSS: {rss_url} HTTP {resp.status_code}"
         
