@@ -3,7 +3,7 @@ import time
 import uuid
 import random
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime
 import gradio as gr
 from bs4 import BeautifulSoup
 
@@ -115,29 +115,12 @@ def scrape_rss_feed(rss_url, logs, max_retries=3, timeout=60):
         logs.append(f"[{datetime.now()}] Giving up on RSS {rss_url} after {max_retries} attempts.")
 
     return article_urls, logs
-    """給定RSS URL，取得所有新聞連結"""
-    article_urls = []
-    try:
-        resp = requests.get(rss_url, headers=HEADERS, timeout=60)
-        if resp.status_code != 200:
-            return article_urls, f"Failed to fetch RSS: {rss_url} HTTP {resp.status_code}"
-        
-        soup = BeautifulSoup(resp.text, "xml")
-        items = soup.find_all("item")
-        for item in items:
-            link_tag = item.find("link")
-            if link_tag and link_tag.text.strip():
-                article_urls.append(link_tag.text.strip())
-        return article_urls, f"Found {len(article_urls)} articles from {rss_url}"
-    except Exception as e:
-        return article_urls, f"Error fetching RSS: {rss_url}, {e}"
 
 def scrape(selected_sources, custom_rss):
-    # 先清理舊檔案
+    # 清理舊檔
     cleanup_old_files()
 
     logs = []
-    # 將所選源的 RSS URL 收集起來
     rss_list = []
     for src in selected_sources:
         rss_list.append(DEFAULT_SOURCES[src])
@@ -145,14 +128,11 @@ def scrape(selected_sources, custom_rss):
         rss_list.append(custom_rss.strip())
 
     all_articles = []
-    # 依序處理 RSS
     for rss_url in rss_list:
-        article_urls, rss_log = scrape_rss_feed(rss_url)
-        logs.append(rss_log)
+        article_urls, logs = scrape_rss_feed(rss_url, logs)
         if article_urls:
-            articles, article_logs = scrape_articles(article_urls)
-            all_articles.extend(articles)
-            logs.append(article_logs)
+            scraped_articles, logs = scrape_articles(article_urls, logs)
+            all_articles.extend(scraped_articles)
 
     # 產生獨特檔名
     timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -160,22 +140,19 @@ def scrape(selected_sources, custom_rss):
     filename = f"allnews_{timestamp_str}_{unique_id}.txt"
     output_path = os.path.join(OUTPUT_DIR, filename)
 
-    # 寫入檔案
     if all_articles:
         with open(output_path, "w", encoding="utf-8") as f:
             for article in all_articles:
                 f.write(f"URL: {article['URL']}\n")
                 f.write(f"Content: {article['Content']}\n\n")
-        logs.append(f"Scraping completed. Total articles: {len(all_articles)}. Output saved to {filename}")
+        logs.append(f"[{datetime.now()}] Scraping completed. Total articles: {len(all_articles)}. Output saved to {filename}")
     else:
         with open(output_path, "w", encoding="utf-8") as f:
             f.write("No articles found.")
-        logs.append("No articles found from the selected RSS sources.")
+        logs.append(f"[{datetime.now()}] No articles found from the selected RSS sources.")
 
     return "\n".join(logs), output_path
 
-
-# 建立 Gradio 介面
 def run_interface(selected_feeds, custom_rss):
     logs, file_path = scrape(selected_feeds, custom_rss)
     return logs, file_path
@@ -196,7 +173,6 @@ with gr.Blocks() as demo:
         )
 
     scrape_button = gr.Button("Scrape")
-    
     logs_output = gr.Textbox(label="Logs", interactive=False)
     download_file = gr.File(label="Download Result")
     
