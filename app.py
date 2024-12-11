@@ -10,15 +10,11 @@ from bs4 import BeautifulSoup
 # 預設 RSS 來源清單
 DEFAULT_SOURCES = {
     "BBC Business": "https://feeds.bbci.co.uk/news/business/rss.xml",
-    "BBC Technology": "https://feeds.bbci.co.uk/news/technology/rss.xml",
-    "Bloomberg Markets": "https://feeds.bloomberg.com/markets/news.rss",
     "Bloomberg Technology": "https://feeds.bloomberg.com/technology/news.rss",
-    "Nasdaq Stocks": "https://www.nasdaq.com/feed/rssoutbound?category=Stocks",
-    "Nasdaq ETFs": "https://www.nasdaq.com/feed/rssoutbound?category=ETFs",
-    "Nasdaq Technology": "https://www.nasdaq.com/feed/rssoutbound?category=Technology",
-    "Nasdaq Insight": "https://www.nasdaq.com/feed/rssoutbound?category=Nasdaq",
-    "Nasdaq Innovation": "https://www.nasdaq.com/feed/rssoutbound?category=Innovation",
-    "Nasdaq Financial Advisors": "https://www.nasdaq.com/feed/rssoutbound?category=Financial+Advisors"
+    "WSJ World News": "https://feeds.content.dowjones.io/public/rss/RSSWorldNews",
+    "WSJ US Business": "https://feeds.content.dowjones.io/public/rss/WSJcomUSBusiness",
+    "WSJ Markets": "https://feeds.content.dowjones.io/public/rss/RSSMarketsMain",
+    "WSJ Technology": "https://feeds.content.dowjones.io/public/rss/RSSWSJD"
 }
 
 HEADERS = {
