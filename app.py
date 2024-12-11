@@ -154,7 +154,7 @@ def run_interface(selected_feeds, custom_rss):
     return logs, file_path
 
 with gr.Blocks() as demo:
-    gr.Markdown("# News RSS Crawler (Hugging Face Spaces)")
+    gr.Markdown("# News RSS Crawler 新聞全文爬取器 David888.com ")
     gr.Markdown("選擇你想抓取的 RSS 來源並可另外輸入自訂的 RSS URL，點擊「Scrape」後將產生文字檔以供下載。")
     
     with gr.Row():
